@@ -2,7 +2,8 @@ What are the legos?
 
 - [x] start docker container from python script using docker-py
 - [x] take the function file from the input and run it inside a running container
-- [x] find out the total execution time of the container
+- [ ] figure out how to parse the time since it's inconsistent in length
+- [ ] find out the total execution time of the container
 - [ ] After a function finishes running, store the total execution time somewhere (in memory?)
 - [ ] Get multiple network bound functions somehow (you might have to write them yourself)
 - [ ] Create a static list of those functions which will act as a task queue. It will be randomized each run.
