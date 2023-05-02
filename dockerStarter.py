@@ -1,12 +1,19 @@
 import docker
 import sys
 import datetime
+import time
 
 # for log in container.logs(stream=True):
     # print(log.strip().decode('utf-8'))
 
 # log_chunk = client.containers.run(**test_container_config)
 #
+
+def cleanupIsoTime(t):
+    t = t[:-1]
+    t = t + '0'*(26-len(t))
+
+    return t
 
 if __name__ == "__main__":
     function = sys.argv[1]
@@ -87,8 +94,9 @@ if __name__ == "__main__":
     for line in container.logs(): 
         print(line)
     '''
-    
+    time.sleep(2)
     print(container.logs())
+
 
     client = docker.APIClient()
     info = client.inspect_container(container.id)
