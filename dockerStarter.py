@@ -59,7 +59,7 @@ if __name__ == "__main__":
             'image': 'node:16',
             # 'command': 'echo hello world!',
             'name': 'tmp', 
-            'detach': True,
+            # 'detach': True,
             # 'stdout': True,
             # 'stream': True,
             'command': f'node {function}',
@@ -72,7 +72,11 @@ if __name__ == "__main__":
     # ************END OF TEST CONFIG*****************************
     # container = client.containers.run(**container_config)
     print(test_container_config['command'])
-    container = client.containers.run(**test_container_config)
+    # container = client.containers.run(**test_container_config)
+
+    st = time.time()
+    container_logs = client.containers.run(**test_container_config)
+    et = time.time()
 
 
     '''
@@ -85,8 +89,6 @@ if __name__ == "__main__":
     container.exec_run(f'node {function}')
     '''
  
-   
-    
     '''
     # this is wrong because you would use the for loop construct when you're streaming
     # the logs with a detached container and if you're doing that then you shouldn't have
@@ -94,12 +96,13 @@ if __name__ == "__main__":
     for line in container.logs(): 
         print(line)
     '''
-    time.sleep(2)
-    print(container.logs())
+    # time.sleep(2)
+    # print(container.logs())
 
+    print(container_logs)
 
-    client = docker.APIClient()
-    info = client.inspect_container(container.id)
+    client2 = docker.APIClient()
+    info = client2.inspect_container(client.containers.get("tmp").id)
 
     # fromisoformat function can only take in string values of len 26
     container_startedAt = info["State"]["StartedAt"][:26]
@@ -109,8 +112,9 @@ if __name__ == "__main__":
 
     startTime = datetime.datetime.fromisoformat(container_startedAt)
     finishTime = datetime.datetime.fromisoformat(container_finishedAt)
-
     timeDiff = (finishTime - startTime).total_seconds() * 1000
 
-    print("total time ", timeDiff)
-    container.remove()
+
+    # timeDiff = (et - st) * 1000
+    print(f"total time = {timeDiff} milliseconds")
+    # container.remove()
