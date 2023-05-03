@@ -15,6 +15,17 @@ def cleanupIsoTime(t):
 
     return t
 
+listOfFunctions = ["functions/test.js",
+    "functions/test.js",
+    "functions/test.js",
+    "functions/test.js",
+    "functions/test.js",
+    "functions/test.js",
+    "functions/test.js",
+    "functions/test.js",
+    ]
+
+
 if __name__ == "__main__":
     function = sys.argv[1]
 
@@ -101,6 +112,7 @@ if __name__ == "__main__":
 
     print(container_logs)
 
+    '''
     client2 = docker.APIClient()
     info = client2.inspect_container(client.containers.get("tmp").id)
 
@@ -114,7 +126,24 @@ if __name__ == "__main__":
     finishTime = datetime.datetime.fromisoformat(container_finishedAt)
     timeDiff = (finishTime - startTime).total_seconds() * 1000
 
+   '''
 
-    # timeDiff = (et - st) * 1000
+    timeDiff = (et - st) * 1000
     print(f"total time = {timeDiff} milliseconds")
     # container.remove()
+
+
+    ######################## HANDLE QUEUE OF FUNCTIONS #######################
+
+    executionTimeMap= {}
+
+    for fn in listOfFunctions:
+        if fn in executionTimeMap:
+            pass
+        else:
+            st = time.time()
+            currLogs = client.containers.run(**test_container_config)
+            et = time.time()
+
+            exeTime = (et - st)
+            executionTimeMap[fn] = exeTime
