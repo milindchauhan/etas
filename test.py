@@ -1,7 +1,141 @@
-def cpuBound(n):
-        a = 3
-        return a + 2
+import json
+import docker
+import sys
+import datetime
+import time
+import queue
+# for log in container.logs(stream=True):
+    # print(log.strip().decode('utf-8'))
 
-def netBound(url="www.google.com"):
-        response = fetch(url)
-        return 
+# log_chunk = client.containers.run(**test_container_config)
+#
+
+def cleanupIsoTime(t):
+    t = t[:-1]
+    t = t + '0'*(26-len(t))
+
+    return t
+
+
+if __name__ == "__main__":
+    function = sys.argv[1]
+
+    client = docker.from_env()
+
+    # ************VOLUME CONFIG*********************************
+    '''
+    # volume config format
+    volume_config = {
+            '<host path>': {
+                'bind': '<path inside container>',
+                'mode': 'ro'
+                }
+            }
+    '''
+
+    volume_config = {
+            '/home/milind/code/etas/functions/': {
+                'bind': '/functions/',
+                'mode': 'ro'
+                }
+            }
+    # ************END OF CONFIG*********************************
+
+
+    # ************THIS CONFIG WORKS PERFECTLY FOR LOGGING********
+    # ************PLEASE DON'T TOUCH*****************************
+    container_config = {
+            'image': 'node:16',
+            # 'name': 'tmp',
+            # 'detach': True,
+            # 'stream': True,
+            # 'command': f'node {function}'
+            'volumes': volume_config,
+            }
+
+    # ***********END OF CONFIG***********************************
+
+    # ***********TEST CONFIG FOR CONTAINER**********************
+    # I probably don't need to put the command in the config dictionary,
+    # as the command might change
+    test_container_config = {
+            'image': 'node:16',
+            # 'command': 'echo hello world!',
+            'name': 'tmp', 
+            'detach': True,
+            # 'stdout': True,
+            # 'stream': True,
+            'command': f'node {function}',
+            # 'command': 'ping google.com',
+            # 'command': 'echo hello world',
+            # 'command': 'node',
+            # 'tty': True
+            'volumes': volume_config,
+            }
+    # ************END OF TEST CONFIG*****************************
+    # container = client.containers.run(**container_config)
+    print(test_container_config['command'])
+    # container = client.containers.run(**test_container_config)
+
+    st = time.time()
+    container = client.containers.run(**test_container_config)
+    et = time.time()
+
+ 
+    '''
+    # this is wrong because you would use the for loop construct when you're streaming
+    # the logs with a detached container and if you're doing that then you shouldn't have
+    # a container object container such that you can use container.logs()
+    for line in container.logs(): 
+        print(line)
+    '''
+    # time.sleep(2)
+    # print(container.logs())
+
+#     print(container_logs)
+    
+    time.sleep(4)
+
+    client2 = docker.APIClient()
+    info = client2.inspect_container(client.containers.get("tmp").id)
+
+    print(json.dumps(info, indent = 4))
+
+    # fromisoformat function can only take in string values of len 26
+    container_startedAt = info["State"]["StartedAt"][:26]
+    container_finishedAt = info["State"]["FinishedAt"][:26]
+    print(container_startedAt)
+    print(container_finishedAt)
+
+    # startTime = datetime.datetime.fromisoformat(container_startedAt)
+    # finishTime = datetime.datetime.fromisoformat(container_finishedAt)
+    # timeDiff = (finishTime - startTime).total_seconds() * 1000
+
+
+    timeDiff = (et - st) * 1000
+    print(f"total time = {timeDiff} milliseconds")
+    container.remove()
+
+
+    ######################## HANDLE QUEUE OF FUNCTIONS #######################
+
+    executionTimeMap= {}
+
+    '''
+    for In in :
+        if fn in executionTimeMap:
+            # after execution time prediction is done. run and get real execution time.
+            st = time.time()
+            currLogs = client.containers.run(**test_container_config)
+            et = time.time()
+
+            exeTime = (et - st)
+        else:
+            st = time.time()
+            currLogs = client.containers.run(**test_container_config)
+            et = time.time()
+
+            exeTime = (et - st)
+            executionTimeMap[fn] = exeTime
+    '''
+

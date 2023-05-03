@@ -2,7 +2,7 @@ import docker
 import sys
 import datetime
 import time
-
+import queue
 # for log in container.logs(stream=True):
     # print(log.strip().decode('utf-8'))
 
@@ -15,15 +15,43 @@ def cleanupIsoTime(t):
 
     return t
 
-listOfFunctions = ["functions/test.js",
-    "functions/test.js",
-    "functions/test.js",
-    "functions/test.js",
-    "functions/test.js",
-    "functions/test.js",
-    "functions/test.js",
-    "functions/test.js",
+class Function:
+
+    def __init__(self, arrivalTime, name="test.js"):
+        self.name = name
+        self.arrivalTime = arrivalTime
+
+    @property
+    def path(self):
+        return "functions/" + self.name
+
+listOfFunctions= [
+        Function(0),
+        Function(1),
+        Function(1),
+        Function(2),
+        Function(3),
+        Function(5),
+        Function(7),
+        Function(10),
+        Function(13),
+        Function(15),
     ]
+
+functionArrivalTimeMap: dict[int, Function] = {
+        0: Function(0),
+        1: Function(1),
+        1: Function(1),
+        2: Function(2),
+        3: Function(3),
+        5: Function(5),
+        7: Function(7),
+        10: Function(10),
+        13: Function(13),
+        15: Function(15),
+}
+
+invocationContainerMap = {}
 
 
 if __name__ == "__main__":
@@ -31,26 +59,13 @@ if __name__ == "__main__":
 
     client = docker.from_env()
 
-
-    # ************THIS CONFIG WORKS PERFECTLY FOR LOGGING********
-    # ************PLEASE DON'T TOUCH*****************************
-    container_config = {
-            'image': 'node:16',
-            'name': 'tmp',
-            # 'detach': True,
-            'stream': True,
-            'command': f'node {function}'
-            }
-
-    # ***********END OF CONFIG***********************************
-
     # ************VOLUME CONFIG*********************************
     '''
     # volume config format
     volume_config = {
             '<host path>': {
                 'bind': '<path inside container>',
-                'mode': 'ro'
+                'mode': 'ro'0ationTimeMa
                 }
             }
     '''
@@ -62,6 +77,20 @@ if __name__ == "__main__":
                 }
             }
     # ************END OF CONFIG*********************************
+
+
+    # ************THIS CONFIG WORKS PERFECTLY FOR LOGGING********
+    # ************PLEASE DON'T TOUCH*****************************
+    container_config = {
+            'image': 'node:16',
+            # 'name': 'tmp',
+            # 'detach': True,
+            # 'stream': True,
+            # 'command': f'node {function}'
+            'volumes': volume_config,
+            }
+
+    # ***********END OF CONFIG***********************************
 
     # ***********TEST CONFIG FOR CONTAINER**********************
     # I probably don't need to put the command in the config dictionary,
@@ -126,7 +155,7 @@ if __name__ == "__main__":
     finishTime = datetime.datetime.fromisoformat(container_finishedAt)
     timeDiff = (finishTime - startTime).total_seconds() * 1000
 
-   '''
+    '''
 
     timeDiff = (et - st) * 1000
     print(f"total time = {timeDiff} milliseconds")
@@ -135,15 +164,62 @@ if __name__ == "__main__":
 
     ######################## HANDLE QUEUE OF FUNCTIONS #######################
 
-    executionTimeMap= {}
+    predictedExecutionTimeMap: dict[str, int]= {}
 
-    for fn in listOfFunctions:
-        if fn in executionTimeMap:
-            pass
+    '''
+    for In in :
+        if fn in predictedExecutionTimeMap:
+            # after execution time prediction is done. run and get real execution time.
+            st = time.time()
+            currLogs = client.containers.run(**test_container_config)
+            et = time.time()
+
+            exeTime = (et - st)
         else:
             st = time.time()
             currLogs = client.containers.run(**test_container_config)
             et = time.time()
 
             exeTime = (et - st)
-            executionTimeMap[fn] = exeTime
+            predictedExecutionTimeMap[fn] = exeTime
+    '''
+
+    taskQueue: queue.PriorityQueue[(int, Function)] = queue.PriorityQueue()
+    currContainers = 0
+    CONTAINER_POOL_LIMIT = 3
+    st = time.time()
+    alpha = 0.5
+    while True:
+        currTime = time.time() - st
+
+        if len(invocationContainerMap) > 0:
+            for k, v in invocationContainerMap.items():
+                if 
+
+        if int(currTime) in functionArrivalTimeMap:
+            fn = functionArrivalTimeMap[int(currTime)]
+            if fn.name in predictedExecutionTimeMap:
+                prevPred = predictedExecutionTimeMap[fn.name]
+                latestExecutionTime: float = latestExecutionTimeMap[fn]
+            else:
+                prevPred = DEFAULT_VALUE
+                latestExecutionTime = DEFAULT_VALUE_TWO
+
+
+            # predict execution time here and put that in the priority queue ds which is taskQueue
+            newPred = (1-alpha)*prevPred + alpha * latestExecutionTime
+            taskQueue.put((fn.arrivalTime + newPred, fn))
+
+        if len(taskQueue) != 0 and currContainers < CONTAINER_POOL_LIMIT:
+            function = taskQueue.get()
+            currContainer = client.containers.run(command=f"node {function.path}", **container_config)
+            invocationContainerMap[function] = currContainer.id
+            currContainers += 1
+
+        if taskQueue.empty() and currTime > 40:
+            break
+
+        time.sleep(0.5)
+
+
+
