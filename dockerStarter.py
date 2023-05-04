@@ -51,8 +51,18 @@ functionArrivalTimeMap: dict[int, Function] = {
         15: Function(15),
 }
 
+# a map of running containers id to the functions they're running
 invocationContainerMap = {}
 
+def getExeTime(info):
+    """returns the total running time of a container after it has exited"""
+    st = info["State"]["StartedAt"][:26]
+    ft = info["State"]["FinishedAt"][:26]
+
+    st = datetime.datetime.fromisoformat(st)
+    ft = datetime.datetime.fromisoformat(ft)
+
+    return (ft - st).total_seconds()
 
 if __name__ == "__main__":
     function = sys.argv[1]
@@ -84,7 +94,7 @@ if __name__ == "__main__":
     container_config = {
             'image': 'node:16',
             # 'name': 'tmp',
-            # 'detach': True,
+            'detach': True,
             # 'stream': True,
             # 'command': f'node {function}'
             'volumes': volume_config,
@@ -140,9 +150,10 @@ if __name__ == "__main__":
     # print(container.logs())
 
     print(container_logs)
+    client.containers.get("tmp").remove()
 
-    '''
     client2 = docker.APIClient()
+    '''
     info = client2.inspect_container(client.containers.get("tmp").id)
 
     # fromisoformat function can only take in string values of len 26
@@ -165,6 +176,7 @@ if __name__ == "__main__":
     ######################## HANDLE QUEUE OF FUNCTIONS #######################
 
     predictedExecutionTimeMap: dict[str, int]= {}
+    latestExecutionTimeMap = {}
 
     '''
     for In in :
@@ -187,20 +199,32 @@ if __name__ == "__main__":
     taskQueue: queue.PriorityQueue[(int, Function)] = queue.PriorityQueue()
     currContainers = 0
     CONTAINER_POOL_LIMIT = 3
+    DEFAULT_VALUE = 0.7
+    DEFAULT_VALUE_TWO = DEFAULT_VALUE
     st = time.time()
     alpha = 0.5
     while True:
         currTime = time.time() - st
 
+        # check if any container has finished running.
+        # if it has store it's execution time and remove it from the dictionary
+        # k is the container id here
         if len(invocationContainerMap) > 0:
-            for k, v in invocationContainerMap.items():
-                if 
+            for k, v in list(invocationContainerMap.items()):
+                info = client2.inspect_container(k)
+                if info["State"]["Status"] == "exited":
+                    exeTime = getExeTime(info)
+                    latestExecutionTimeMap[v] = exeTime
+
+                    client.containers.get(k).remove()
+                    del invocationContainerMap[k]
+                    currContainers -= 1
 
         if int(currTime) in functionArrivalTimeMap:
             fn = functionArrivalTimeMap[int(currTime)]
             if fn.name in predictedExecutionTimeMap:
                 prevPred = predictedExecutionTimeMap[fn.name]
-                latestExecutionTime: float = latestExecutionTimeMap[fn]
+                latestExecutionTime = latestExecutionTimeMap[fn.name]
             else:
                 prevPred = DEFAULT_VALUE
                 latestExecutionTime = DEFAULT_VALUE_TWO
@@ -208,12 +232,13 @@ if __name__ == "__main__":
 
             # predict execution time here and put that in the priority queue ds which is taskQueue
             newPred = (1-alpha)*prevPred + alpha * latestExecutionTime
+            predictedExecutionTimeMap[fn.name] = newPred
             taskQueue.put((fn.arrivalTime + newPred, fn))
 
-        if len(taskQueue) != 0 and currContainers < CONTAINER_POOL_LIMIT:
-            function = taskQueue.get()
+        if not taskQueue.empty() and currContainers < CONTAINER_POOL_LIMIT:
+            function = taskQueue.get()[1]
             currContainer = client.containers.run(command=f"node {function.path}", **container_config)
-            invocationContainerMap[function] = currContainer.id
+            invocationContainerMap[currContainer.id] = function.name
             currContainers += 1
 
         if taskQueue.empty() and currTime > 40:
