@@ -54,6 +54,8 @@ functionArrivalTimeMap: dict[int, Function] = {
 # a map of running containers id to the functions they're running
 invocationContainerMap = {}
 
+
+############## Utility methods ##################
 def getExeTime(info):
     """returns the total running time of a container after it has exited"""
     st = info["State"]["StartedAt"][:26]
@@ -64,6 +66,10 @@ def getExeTime(info):
 
     return (ft - st).total_seconds()
 
+def infoLog(time, msg):
+    print(f"[{time:.2f}] {msg}")
+
+############# MAIN FUNCTION #######################
 if __name__ == "__main__":
     function = sys.argv[1]
 
@@ -216,12 +222,14 @@ if __name__ == "__main__":
                     exeTime = getExeTime(info)
                     latestExecutionTimeMap[v] = exeTime
 
+                    infoLog(currTime, f"container {client.containers.get(k).name} has finished executing and will be removed")
                     client.containers.get(k).remove()
                     del invocationContainerMap[k]
                     currContainers -= 1
 
         if int(currTime) in functionArrivalTimeMap:
             fn = functionArrivalTimeMap[int(currTime)]
+            infoLog(currTime, f"new Function arrival {fn.name}")
             if fn.name in predictedExecutionTimeMap:
                 prevPred = predictedExecutionTimeMap[fn.name]
                 latestExecutionTime = latestExecutionTimeMap[fn.name]
@@ -238,13 +246,14 @@ if __name__ == "__main__":
         if not taskQueue.empty() and currContainers < CONTAINER_POOL_LIMIT:
             function = taskQueue.get()[1]
             currContainer = client.containers.run(command=f"node {function.path}", **container_config)
+            infoLog(currTime, f"{function.name} being executed in a container with the container name {currContainer.name}")
             invocationContainerMap[currContainer.id] = function.name
             currContainers += 1
 
         if taskQueue.empty() and currTime > 40:
             break
 
-        time.sleep(0.5)
+        time.sleep(0.12)
 
 
 
