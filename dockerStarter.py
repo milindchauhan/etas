@@ -25,6 +25,7 @@ class Function:
     def path(self):
         return "functions/" + self.name
 
+'''
 listOfFunctions= [
         Function(0),
         Function(1),
@@ -37,11 +38,12 @@ listOfFunctions= [
         Function(13),
         Function(15),
     ]
-
+'''
 functionArrivalTimeMap: dict[int, Function] = {
         0: Function(0),
         1: Function(1),
         1: Function(1),
+        1: Function(1, "fetchGithubUser.js"),
         2: Function(2),
         3: Function(3),
         5: Function(5),
@@ -183,6 +185,7 @@ if __name__ == "__main__":
 
     predictedExecutionTimeMap: dict[str, int]= {}
     latestExecutionTimeMap = {}
+    waitingTimeMap = {}
 
     '''
     for In in :
@@ -222,7 +225,7 @@ if __name__ == "__main__":
                     exeTime = getExeTime(info)
                     latestExecutionTimeMap[v] = exeTime
 
-                    infoLog(currTime, f"container {client.containers.get(k).name} has finished executing and will be removed")
+                    infoLog(currTime, f"container {client.containers.get(k).name}, running function {v} has finished executing and will be removed")
                     client.containers.get(k).remove()
                     del invocationContainerMap[k]
                     currContainers -= 1
@@ -230,6 +233,10 @@ if __name__ == "__main__":
         if int(currTime) in functionArrivalTimeMap:
             fn = functionArrivalTimeMap[int(currTime)]
             infoLog(currTime, f"new Function arrival {fn.name}")
+
+            # set actual arrival time for function fn
+            fn.arrivalTime = currTime
+
             if fn.name in predictedExecutionTimeMap:
                 prevPred = predictedExecutionTimeMap[fn.name]
                 latestExecutionTime = latestExecutionTimeMap[fn.name]
@@ -245,15 +252,21 @@ if __name__ == "__main__":
 
         if not taskQueue.empty() and currContainers < CONTAINER_POOL_LIMIT:
             function = taskQueue.get()[1]
+
+            # calculate waiting time and store it in a map
+            # might have rewrite the map to store for different values of alpha
+            functionWaitingTime = time.time() - st - function.arrivalTime
+            waitingTimeMap[function.name] = functionWaitingTime
+
             currContainer = client.containers.run(command=f"node {function.path}", **container_config)
             infoLog(currTime, f"{function.name} being executed in a container with the container name {currContainer.name}")
             invocationContainerMap[currContainer.id] = function.name
             currContainers += 1
 
-        if taskQueue.empty() and currTime > 40:
+        if taskQueue.empty() and currTime > 20:
             break
 
-        time.sleep(0.12)
+        time.sleep(0.1)
 
 
 
