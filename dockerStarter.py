@@ -40,17 +40,15 @@ listOfFunctions= [
     ]
 '''
 functionArrivalTimeMap: dict[int, Function] = {
-        0: Function(0),
-        1: Function(1),
-        1: Function(1),
-        1: Function(1, "fetchGithubUser.js"),
-        2: Function(2),
-        3: Function(3),
-        5: Function(5),
-        7: Function(7),
-        10: Function(10),
-        13: Function(13),
-        15: Function(15),
+        0: [Function(0)],
+        1: [Function(1), Function(1, "fetchGithubUser.js")],
+        2: [Function(2)],
+        3: [Function(3)],
+        5: [Function(5)],
+        7: [Function(7)],
+        10: [Function(10)],
+        13: [Function(13)],
+        15: [Function(15)],
 }
 
 # a map of running containers id to the functions they're running
@@ -231,31 +229,31 @@ if __name__ == "__main__":
                     currContainers -= 1
 
         if int(currTime) in functionArrivalTimeMap:
-            fn = functionArrivalTimeMap[int(currTime)]
-            infoLog(currTime, f"new Function arrival {fn.name}")
+            for fn in functionArrivalTimeMap[int(currTime)]:
+                infoLog(currTime, f"new Function arrival {fn.name}")
 
-            # set actual arrival time for function fn
-            fn.arrivalTime = currTime
+                # set actual arrival time for function fn
+                fn.arrivalTime = currTime
 
-            if fn.name in predictedExecutionTimeMap:
-                prevPred = predictedExecutionTimeMap[fn.name]
-                latestExecutionTime = latestExecutionTimeMap[fn.name]
-            else:
-                prevPred = DEFAULT_VALUE
-                latestExecutionTime = DEFAULT_VALUE_TWO
+                if fn.name in predictedExecutionTimeMap:
+                    prevPred = predictedExecutionTimeMap[fn.name]
+                    latestExecutionTime = latestExecutionTimeMap[fn.name]
+                else:
+                    prevPred = DEFAULT_VALUE
+                    latestExecutionTime = DEFAULT_VALUE_TWO
 
 
-            # predict execution time here and put that in the priority queue ds which is taskQueue
-            newPred = (1-alpha)*prevPred + alpha * latestExecutionTime
-            predictedExecutionTimeMap[fn.name] = newPred
-            taskQueue.put((fn.arrivalTime + newPred, fn))
+                # predict execution time here and put that in the priority queue ds which is taskQueue
+                newPred = (1-alpha)*prevPred + alpha * latestExecutionTime
+                predictedExecutionTimeMap[fn.name] = newPred
+                taskQueue.put((fn.arrivalTime + newPred, fn))
 
         if not taskQueue.empty() and currContainers < CONTAINER_POOL_LIMIT:
             function = taskQueue.get()[1]
 
             # calculate waiting time and store it in a map
             # might have rewrite the map to store for different values of alpha
-            functionWaitingTime = time.time() - st - function.arrivalTime
+            functionWaitingTime = currTime - function.arrivalTime
             waitingTimeMap[function.name] = functionWaitingTime
 
             currContainer = client.containers.run(command=f"node {function.path}", **container_config)
