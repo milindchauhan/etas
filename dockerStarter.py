@@ -181,7 +181,7 @@ if __name__ == "__main__":
 
     ######################## HANDLE QUEUE OF FUNCTIONS #######################
 
-    predictedExecutionTimeMap: dict[str, int]= {}
+    predictedExecutionTimeMap: dict[str, float]= {}
     latestExecutionTimeMap = {}
     waitingTimeMap = {}
 
@@ -203,7 +203,7 @@ if __name__ == "__main__":
             predictedExecutionTimeMap[fn] = exeTime
     '''
 
-    taskQueue: queue.PriorityQueue[(int, Function)] = queue.PriorityQueue()
+    taskQueue: queue.PriorityQueue = queue.PriorityQueue()
     currContainers = 0
     CONTAINER_POOL_LIMIT = 3
     DEFAULT_VALUE = 0.7
