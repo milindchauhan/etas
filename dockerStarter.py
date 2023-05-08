@@ -237,7 +237,12 @@ if __name__ == "__main__":
 
                 if fn.name in predictedExecutionTimeMap:
                     prevPred = predictedExecutionTimeMap[fn.name]
-                    latestExecutionTime = latestExecutionTimeMap[fn.name]
+
+                    # in case the first container for this function hasn't finished running and we don't have any latest execution time
+                    try:
+                        latestExecutionTime = latestExecutionTimeMap[fn.name]
+                    except KeyError:
+                        latestExecutionTime = prevPred
                 else:
                     prevPred = DEFAULT_VALUE
                     latestExecutionTime = DEFAULT_VALUE_TWO
