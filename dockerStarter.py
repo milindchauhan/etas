@@ -25,6 +25,9 @@ class Function:
     def path(self):
         return "functions/" + self.name
 
+    def __lt__(self, other):
+       return self.arrivalTime < other.arrivalTime
+
 '''
 listOfFunctions= [
         Function(0),
@@ -40,7 +43,7 @@ listOfFunctions= [
     ]
 '''
 functionArrivalTimeMap: dict[int, list[Function]] = {
-        0: [Function()],
+        0: [Function("fetchJsonExtended.js")],
         1: [Function(), Function( "fetchGithubUser.js")],
         2: [Function()],
         3: [Function()],
