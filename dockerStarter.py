@@ -209,10 +209,10 @@ if __name__ == "__main__":
     taskQueue: queue.PriorityQueue = queue.PriorityQueue()
     currContainers = 0
     CONTAINER_POOL_LIMIT = 3
-    DEFAULT_VALUE = 0.7
+    DEFAULT_VALUE = 0.03
     DEFAULT_VALUE_TWO = DEFAULT_VALUE
     st = time.time()
-    alpha = 0.5
+    alpha = 0.4
     while True:
         currTime = time.time() - st
 
@@ -262,7 +262,7 @@ if __name__ == "__main__":
             # calculate waiting time and store it in a map
             # might have rewrite the map to store for different values of alpha
             functionWaitingTime = currTime - function.arrivalTime
-            waitingTimeMap[function.name] = functionWaitingTime
+            waitingTimeMap[function.name] = (functionWaitingTime + (waitingTimeMap[function.name] if function.name in waitingTimeMap else functionWaitingTime) ) / 2
 
             currContainer = client.containers.run(command=f"node {function.path}", **container_config)
             infoLog(currTime, f"{function.name} being executed in a container with the container name {currContainer.name}")
