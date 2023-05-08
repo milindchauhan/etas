@@ -44,12 +44,12 @@ listOfFunctions= [
 '''
 functionArrivalTimeMap: dict[int, list[Function]] = {
         0: [Function("fetchJsonExtended.js")],
-        1: [Function(), Function( "fetchGithubUser.js")],
-        2: [Function()],
-        3: [Function()],
+        1: [Function(), Function("fetchGithubUser.js"), Function("fetchJsonExtended.js")],
+        2: [Function("fetchGithubUser.js"), Function()],
+        3: [Function(), Function("fetchJsonExtended.js"), Function("fetchGithubUser.js"), Function("fetchGithubUser.js")],
         5: [Function()],
-        7: [Function()],
-        10: [Function()],
+        7: [Function("fetchGithubUser.js")],
+        10: [Function("fetchJsonExtended.js"), Function(), Function("fetchJsonExtended.js")],
         13: [Function()],
         15: [Function()],
 }
