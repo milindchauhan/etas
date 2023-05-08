@@ -17,9 +17,9 @@ def cleanupIsoTime(t):
 
 class Function:
 
-    def __init__(self, arrivalTime, name="test.js"):
+    def __init__(self, name="test.js"):
         self.name = name
-        self.arrivalTime = arrivalTime
+        self.arrivalTime = -1.0
 
     @property
     def path(self):
@@ -39,16 +39,16 @@ listOfFunctions= [
         Function(15),
     ]
 '''
-functionArrivalTimeMap: dict[int, Function] = {
-        0: [Function(0)],
-        1: [Function(1), Function(1, "fetchGithubUser.js")],
-        2: [Function(2)],
-        3: [Function(3)],
-        5: [Function(5)],
-        7: [Function(7)],
-        10: [Function(10)],
-        13: [Function(13)],
-        15: [Function(15)],
+functionArrivalTimeMap: dict[int, list[Function]] = {
+        0: [Function()],
+        1: [Function(), Function( "fetchGithubUser.js")],
+        2: [Function()],
+        3: [Function()],
+        5: [Function()],
+        7: [Function()],
+        10: [Function()],
+        13: [Function()],
+        15: [Function()],
 }
 
 # a map of running containers id to the functions they're running
