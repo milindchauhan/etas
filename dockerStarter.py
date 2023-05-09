@@ -215,6 +215,7 @@ if __name__ == "__main__":
     alphas = [0.1, 0.2, 0.3, 0.4]
 
     for alpha in alphas:
+        midWaitingTimeMap = {}
         while True:
             currTime = time.time() - st
 
@@ -240,6 +241,9 @@ if __name__ == "__main__":
                     # set actual arrival time for function fn
                     fn.arrivalTime = currTime
 
+                    # set entry in midWaitingTimeMap
+                    midWaitingTimeMap[fn.name] = []
+
                     if fn.name in predictedExecutionTimeMap:
                         prevPred = predictedExecutionTimeMap[fn.name]
 
@@ -258,20 +262,26 @@ if __name__ == "__main__":
                     predictedExecutionTimeMap[fn.name] = newPred
                     taskQueue.put((fn.arrivalTime + newPred, fn))
 
+                # del currTime entries in functionArrivalTimeMap
+                del functionArrivalTimeMap[int(currTime)]
+
             if not taskQueue.empty() and currContainers < CONTAINER_POOL_LIMIT:
                 function = taskQueue.get()[1]
 
                 # calculate waiting time and store it in a map
                 # might have rewrite the map to store for different values of alpha
                 functionWaitingTime = currTime - function.arrivalTime
-                waitingTimeMap[function.name] = (functionWaitingTime + (waitingTimeMap[function.name] if function.name in waitingTimeMap else functionWaitingTime) ) / 2
+                # waitingTimeMap[function.name] = (functionWaitingTime + (waitingTimeMap[function.name] if function.name in waitingTimeMap else functionWaitingTime) ) / 2
+                midWaitingTimeMap[function.name].append(functionWaitingTime)
 
                 currContainer = client.containers.run(command=f"node {function.path}", **container_config)
                 infoLog(currTime, f"{function.name} being executed in a container with the container name {currContainer.name}")
                 invocationContainerMap[currContainer.id] = function.name
                 currContainers += 1
 
-            if taskQueue.empty() and currTime > 20:
+            if taskQueue.empty() and len(functionArrivalTimeMap) == 0:
                 break
 
             time.sleep(0.1)
+
+        waitingTimeMap[alpha] = midWaitingTimeMap
