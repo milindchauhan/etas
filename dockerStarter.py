@@ -273,6 +273,3 @@ if __name__ == "__main__":
             break
 
         time.sleep(0.1)
-
-
-
