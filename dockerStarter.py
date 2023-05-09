@@ -212,64 +212,66 @@ if __name__ == "__main__":
     DEFAULT_VALUE = 0.03
     DEFAULT_VALUE_TWO = DEFAULT_VALUE
     st = time.time()
-    alpha = 0.4
-    while True:
-        currTime = time.time() - st
+    alphas = [0.1, 0.2, 0.3, 0.4]
 
-        # check if any container has finished running.
-        # if it has store it's execution time and remove it from the dictionary
-        # k is the container id here
-        if len(invocationContainerMap) > 0:
-            for k, v in list(invocationContainerMap.items()):
-                info = client2.inspect_container(k)
-                if info["State"]["Status"] == "exited":
-                    exeTime = getExeTime(info)
-                    latestExecutionTimeMap[v] = exeTime
+    for alpha in alphas:
+        while True:
+            currTime = time.time() - st
 
-                    infoLog(currTime, f"container {client.containers.get(k).name}, running function {v} has finished executing and will be removed")
-                    client.containers.get(k).remove()
-                    del invocationContainerMap[k]
-                    currContainers -= 1
+            # check if any container has finished running.
+            # if it has store it's execution time and remove it from the dictionary
+            # k is the container id here
+            if len(invocationContainerMap) > 0:
+                for k, v in list(invocationContainerMap.items()):
+                    info = client2.inspect_container(k)
+                    if info["State"]["Status"] == "exited":
+                        exeTime = getExeTime(info)
+                        latestExecutionTimeMap[v] = exeTime
 
-        if int(currTime) in functionArrivalTimeMap:
-            for fn in functionArrivalTimeMap[int(currTime)]:
-                infoLog(currTime, f"new Function arrival {fn.name}")
+                        infoLog(currTime, f"container {client.containers.get(k).name}, running function {v} has finished executing and will be removed")
+                        client.containers.get(k).remove()
+                        del invocationContainerMap[k]
+                        currContainers -= 1
 
-                # set actual arrival time for function fn
-                fn.arrivalTime = currTime
+            if int(currTime) in functionArrivalTimeMap:
+                for fn in functionArrivalTimeMap[int(currTime)]:
+                    infoLog(currTime, f"new Function arrival {fn.name}")
 
-                if fn.name in predictedExecutionTimeMap:
-                    prevPred = predictedExecutionTimeMap[fn.name]
+                    # set actual arrival time for function fn
+                    fn.arrivalTime = currTime
 
-                    # in case the first container for this function hasn't finished running and we don't have any latest execution time
-                    try:
-                        latestExecutionTime = latestExecutionTimeMap[fn.name]
-                    except KeyError:
-                        latestExecutionTime = prevPred
-                else:
-                    prevPred = DEFAULT_VALUE
-                    latestExecutionTime = DEFAULT_VALUE_TWO
+                    if fn.name in predictedExecutionTimeMap:
+                        prevPred = predictedExecutionTimeMap[fn.name]
+
+                        # in case the first container for this function hasn't finished running and we don't have any latest execution time
+                        try:
+                            latestExecutionTime = latestExecutionTimeMap[fn.name]
+                        except KeyError:
+                            latestExecutionTime = prevPred
+                    else:
+                        prevPred = DEFAULT_VALUE
+                        latestExecutionTime = DEFAULT_VALUE_TWO
 
 
-                # predict execution time here and put that in the priority queue ds which is taskQueue
-                newPred = (1-alpha)*prevPred + alpha * latestExecutionTime
-                predictedExecutionTimeMap[fn.name] = newPred
-                taskQueue.put((fn.arrivalTime + newPred, fn))
+                    # predict execution time here and put that in the priority queue ds which is taskQueue
+                    newPred = (1-alpha)*prevPred + alpha * latestExecutionTime
+                    predictedExecutionTimeMap[fn.name] = newPred
+                    taskQueue.put((fn.arrivalTime + newPred, fn))
 
-        if not taskQueue.empty() and currContainers < CONTAINER_POOL_LIMIT:
-            function = taskQueue.get()[1]
+            if not taskQueue.empty() and currContainers < CONTAINER_POOL_LIMIT:
+                function = taskQueue.get()[1]
 
-            # calculate waiting time and store it in a map
-            # might have rewrite the map to store for different values of alpha
-            functionWaitingTime = currTime - function.arrivalTime
-            waitingTimeMap[function.name] = (functionWaitingTime + (waitingTimeMap[function.name] if function.name in waitingTimeMap else functionWaitingTime) ) / 2
+                # calculate waiting time and store it in a map
+                # might have rewrite the map to store for different values of alpha
+                functionWaitingTime = currTime - function.arrivalTime
+                waitingTimeMap[function.name] = (functionWaitingTime + (waitingTimeMap[function.name] if function.name in waitingTimeMap else functionWaitingTime) ) / 2
 
-            currContainer = client.containers.run(command=f"node {function.path}", **container_config)
-            infoLog(currTime, f"{function.name} being executed in a container with the container name {currContainer.name}")
-            invocationContainerMap[currContainer.id] = function.name
-            currContainers += 1
+                currContainer = client.containers.run(command=f"node {function.path}", **container_config)
+                infoLog(currTime, f"{function.name} being executed in a container with the container name {currContainer.name}")
+                invocationContainerMap[currContainer.id] = function.name
+                currContainers += 1
 
-        if taskQueue.empty() and currTime > 20:
-            break
+            if taskQueue.empty() and currTime > 20:
+                break
 
-        time.sleep(0.1)
+            time.sleep(0.1)
