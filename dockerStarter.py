@@ -1,4 +1,5 @@
 import docker
+import json
 import sys
 import datetime
 import time
@@ -73,8 +74,7 @@ def getExeTime(info):
 def getArrivalQueue(arrivalMap: dict):
     arrivalQueue = queue.PriorityQueue()
     for time, functions in arrivalMap.items():
-        for fn in functions:
-            arrivalQueue.put((time, fn))
+        arrivalQueue.put((time, functions))
 
     return arrivalQueue
 
@@ -224,6 +224,9 @@ if __name__ == "__main__":
     st = time.time()
     alphas = [0.1, 0.2, 0.3, 0.4]
     latestArrivedFunction = None
+    midWaitingTimeMap = {}
+    arrivalQueue = getArrivalQueue(functionArrivalTimeMap)
+
 
     for alpha in alphas:
         midWaitingTimeMap = {}
@@ -252,15 +255,17 @@ if __name__ == "__main__":
                     latestArrivedFunction = arrivalQueue.get()
 
             elif latestArrivedFunction[0] <= int(currTime):
-                infoLog(currTime, f"functions for {int(currTime)} will be processed now")
-                for fn in functionArrivalTimeMap[int(currTime)]:
+                infoLog(currTime, f"functions arrived till {int(currTime)} will be processed now")
+                arrivedFunctions = latestArrivedFunction[1]
+                for fn in arrivedFunctions:
                     infoLog(currTime, f"new Function arrival {fn.name}")
 
                     # set actual arrival time for function fn
                     fn.arrivalTime = currTime
 
                     # set entry in midWaitingTimeMap
-                    midWaitingTimeMap[fn.name] = []
+                    if fn.name not in midWaitingTimeMap:
+                        midWaitingTimeMap[fn.name] = []
 
                     if fn.name in predictedExecutionTimeMap:
                         prevPred = predictedExecutionTimeMap[fn.name]
@@ -282,7 +287,7 @@ if __name__ == "__main__":
 
                 # del currTime entries in functionArrivalTimeMap
                 infoLog(currTime, f"functions for arrival time {int(currTime)} finished running")
-                del functionArrivalTimeMap[int(currTime)]
+                latestArrivedFunction = None
 
             if not taskQueue.empty() and currContainers < CONTAINER_POOL_LIMIT:
                 function = taskQueue.get()[1]
@@ -298,7 +303,7 @@ if __name__ == "__main__":
                 invocationContainerMap[currContainer.id] = function.name
                 currContainers += 1
 
-            if taskQueue.empty() and len(functionArrivalTimeMap) == 0:
+            if taskQueue.empty() and arrivalQueue.empty() and len(invocationContainerMap) == 0:
                 break
 
             time.sleep(0.1)
