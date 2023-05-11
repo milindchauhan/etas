@@ -69,6 +69,16 @@ def getExeTime(info):
 
     return (ft - st).total_seconds()
 
+
+def getArrivalQueue(arrivalMap: dict):
+    arrivalQueue = queue.PriorityQueue()
+    for time, functions in arrivalMap.items():
+        for fn in functions:
+            arrivalQueue.put((time, fn))
+
+    return arrivalQueue
+
+
 def infoLog(time, msg):
     print(f"[{time:.2f}] {msg}")
 
@@ -213,9 +223,12 @@ if __name__ == "__main__":
     DEFAULT_VALUE_TWO = DEFAULT_VALUE
     st = time.time()
     alphas = [0.1, 0.2, 0.3, 0.4]
+    latestArrivedFunction = None
 
     for alpha in alphas:
         midWaitingTimeMap = {}
+        arrivalQueue = getArrivalQueue(functionArrivalTimeMap)
+
         while True:
             currTime = time.time() - st
 
@@ -234,7 +247,12 @@ if __name__ == "__main__":
                         del invocationContainerMap[k]
                         currContainers -= 1
 
-            if int(currTime) in functionArrivalTimeMap:
+            if latestArrivedFunction is None:
+                if not arrivalQueue.empty():
+                    latestArrivedFunction = arrivalQueue.get()
+
+            elif latestArrivedFunction[0] <= int(currTime):
+                infoLog(currTime, f"functions for {int(currTime)} will be processed now")
                 for fn in functionArrivalTimeMap[int(currTime)]:
                     infoLog(currTime, f"new Function arrival {fn.name}")
 
@@ -263,6 +281,7 @@ if __name__ == "__main__":
                     taskQueue.put((fn.arrivalTime + newPred, fn))
 
                 # del currTime entries in functionArrivalTimeMap
+                infoLog(currTime, f"functions for arrival time {int(currTime)} finished running")
                 del functionArrivalTimeMap[int(currTime)]
 
             if not taskQueue.empty() and currContainers < CONTAINER_POOL_LIMIT:
