@@ -4,6 +4,7 @@ import sys
 import datetime
 import time
 import queue
+import statistics
 # for log in container.logs(stream=True):
     # print(log.strip().decode('utf-8'))
 
@@ -78,6 +79,17 @@ def getArrivalQueue(arrivalMap: dict):
 
     return arrivalQueue
 
+def getAverageWaitingTime(waitingTimeMap):
+    averageWaitingTimeMap = {}
+
+    for alpha, alphaMap in waitingTimeMap.items():
+        innerDict = {}
+        for fn, waitingTimes in alphaMap.items():
+            innerDict[fn] = statistics.mean(waitingTimes)
+
+        averageWaitingTimeMap[alpha] = innerDict
+
+    return averageWaitingTimeMap
 
 def infoLog(time, msg):
     print(f"[{time:.2f}] {msg}")
@@ -309,3 +321,8 @@ if __name__ == "__main__":
             time.sleep(0.1)
 
         waitingTimeMap[alpha] = midWaitingTimeMap
+
+    # at this point we have the waiting time map for all alphas
+
+    averageWaitingTimeMap = getAverageWaitingTime(waitingTimeMap)
+    print(json.dumps(averageWaitingTimeMap, indent=4))
