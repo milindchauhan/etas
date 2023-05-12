@@ -222,7 +222,7 @@ if __name__ == "__main__":
     DEFAULT_VALUE = 0.03
     DEFAULT_VALUE_TWO = DEFAULT_VALUE
     st = time.time()
-    alphas = [0.1, 0.2, 0.3, 0.4]
+    alphas = [0.1, 0.2, 0.3, 0.4, 0.5]
     latestArrivedFunction = None
     midWaitingTimeMap = {}
     arrivalQueue = getArrivalQueue(functionArrivalTimeMap)
