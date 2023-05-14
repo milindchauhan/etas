@@ -25,7 +25,7 @@ class Function:
 
     @property
     def path(self):
-        return "functions/" + self.name
+        return self.name
 
     def __lt__(self, other):
        return self.arrivalTime < other.arrivalTime
