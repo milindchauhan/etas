@@ -301,7 +301,7 @@ if __name__ == "__main__":
                     taskQueue.put((fn.arrivalTime + newPred, fn))
 
                 # del currTime entries in functionArrivalTimeMap
-                infoLog(currTime, f"functions for arrival time {int(currTime)} finished running")
+                infoLog(currTime, f"functions for arrival time {int(currTime)} have all been queued")
                 latestArrivedFunction = None
 
             if not taskQueue.empty() and currContainers < CONTAINER_POOL_LIMIT:
