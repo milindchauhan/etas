@@ -259,7 +259,9 @@ if __name__ == "__main__":
                         latestExecutionTimeMap[v] = exeTime
 
                         infoLog(currTime, f"container {client.containers.get(k).name}, running function {v} has finished executing and will be removed")
-                        client.containers.get(k).remove()
+                        container = client.containers.get(k)
+                        print(container.logs().decode())
+                        container.remove()
                         del invocationContainerMap[k]
                         currContainers -= 1
 
