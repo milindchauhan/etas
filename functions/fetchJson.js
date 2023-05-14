@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 async function fetchData() {
   const response1 = await fetch('https://jsonplaceholder.typicode.com/posts/1');
