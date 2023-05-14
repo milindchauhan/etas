@@ -123,12 +123,13 @@ if __name__ == "__main__":
     # ************THIS CONFIG WORKS PERFECTLY FOR LOGGING********
     # ************PLEASE DON'T TOUCH*****************************
     container_config = {
-            'image': 'node:16',
+            # 'image': 'node:16',
+            'image': 'node-test',
             # 'name': 'tmp',
             'detach': True,
             # 'stream': True,
             # 'command': f'node {function}'
-            'volumes': volume_config,
+            # 'volumes': volume_config,
             }
 
     # ***********END OF CONFIG***********************************
