@@ -24,9 +24,9 @@ async function fetchAllData() {
   const users = {};
 
   for (const post of posts) {
-    const postId = post.id;
-    const postComments = await fetchComments(postId);
-    comments.push(...postComments);
+    // const postId = post.id;
+    // const postComments = await fetchComments(postId);
+    // comments.push(...postComments);
 
     const userId = post.userId;
     if (!users[userId]) {
