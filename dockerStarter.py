@@ -51,6 +51,17 @@ def cleanupIsoTime(t):
 
     return t
 
+def getFunctionArrivalMap(file_path):
+    with open(file_path, "r") as file:
+        data = json.load(file)
+
+    res = {}
+
+    for k, v in data.items():
+        res[int(k)] = [Function(f) for f in v]
+
+    return res
+
 class Function:
 
     def __init__(self, name="test.js"):
@@ -78,17 +89,8 @@ listOfFunctions= [
         Function(15),
     ]
 '''
-functionArrivalTimeMap: dict[int, list[Function]] = {
-        0: [Function("fetchJsonExtended.js")],
-        1: [Function(), Function("fetchGithubUser.js"), Function("fetchJsonExtended.js")],
-        2: [Function("fetchGithubUser.js"), Function()],
-        3: [Function(), Function("fetchJsonExtended.js"), Function("fetchGithubUser.js"), Function("fetchGithubUser.js")],
-        5: [Function()],
-        7: [Function("fetchGithubUser.js")],
-        10: [Function("fetchJsonExtended.js"), Function(), Function("fetchJsonExtended.js")],
-        13: [Function()],
-        15: [Function()],
-}
+functionArrivalTimeMap = getFunctionArrivalMap("functionArrivalQueue.json");
+
 
 # a map of running containers id to the functions they're running
 invocationContainerMap = {}
@@ -329,3 +331,5 @@ if __name__ == "__main__":
 
     averageWaitingTimeMap = getAverageWaitingTime(waitingTimeMap)
     print(json.dumps(averageWaitingTimeMap, indent=4))
+
+
