@@ -62,6 +62,12 @@ def getFunctionArrivalMap(file_path):
 
     return res
 
+def logMapUtilFunction(file_path, map):
+    with open(file_path, 'a') as fp:
+        fp.write("\n" + datetime.datetime.now().strftime("%d-%m-%Y, %H:%M:%S") + "\n")
+        fp.write(json.dumps(map, indent=4))
+        fp.write("\n")
+
 class Function:
 
     def __init__(self, name="test.js"):
