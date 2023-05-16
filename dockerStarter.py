@@ -10,6 +10,40 @@ import statistics
 
 # log_chunk = client.containers.run(**test_container_config)
 #
+############## Utility methods ##################
+def getExeTime(info):
+    """returns the total running time of a container after it has exited"""
+    st = info["State"]["StartedAt"][:26]
+    ft = info["State"]["FinishedAt"][:26]
+
+    st = datetime.datetime.fromisoformat(st)
+    ft = datetime.datetime.fromisoformat(ft)
+
+    return (ft - st).total_seconds()
+
+
+def getArrivalQueue(arrivalMap: dict):
+    arrivalQueue = queue.PriorityQueue()
+    for time, functions in arrivalMap.items():
+        arrivalQueue.put((time, functions))
+
+    return arrivalQueue
+
+def getAverageWaitingTime(waitingTimeMap):
+    averageWaitingTimeMap = {}
+
+    for alpha, alphaMap in waitingTimeMap.items():
+        innerDict = {}
+        for fn, waitingTimes in alphaMap.items():
+            innerDict[fn] = statistics.mean(waitingTimes)
+
+        averageWaitingTimeMap[alpha] = innerDict
+
+    return averageWaitingTimeMap
+
+def infoLog(time, msg):
+    print(f"[{time:.2f}] {msg}")
+
 
 def cleanupIsoTime(t):
     t = t[:-1]
@@ -59,40 +93,6 @@ functionArrivalTimeMap: dict[int, list[Function]] = {
 # a map of running containers id to the functions they're running
 invocationContainerMap = {}
 
-
-############## Utility methods ##################
-def getExeTime(info):
-    """returns the total running time of a container after it has exited"""
-    st = info["State"]["StartedAt"][:26]
-    ft = info["State"]["FinishedAt"][:26]
-
-    st = datetime.datetime.fromisoformat(st)
-    ft = datetime.datetime.fromisoformat(ft)
-
-    return (ft - st).total_seconds()
-
-
-def getArrivalQueue(arrivalMap: dict):
-    arrivalQueue = queue.PriorityQueue()
-    for time, functions in arrivalMap.items():
-        arrivalQueue.put((time, functions))
-
-    return arrivalQueue
-
-def getAverageWaitingTime(waitingTimeMap):
-    averageWaitingTimeMap = {}
-
-    for alpha, alphaMap in waitingTimeMap.items():
-        innerDict = {}
-        for fn, waitingTimes in alphaMap.items():
-            innerDict[fn] = statistics.mean(waitingTimes)
-
-        averageWaitingTimeMap[alpha] = innerDict
-
-    return averageWaitingTimeMap
-
-def infoLog(time, msg):
-    print(f"[{time:.2f}] {msg}")
 
 ############# MAIN FUNCTION #######################
 if __name__ == "__main__":
