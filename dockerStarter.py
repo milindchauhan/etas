@@ -1,5 +1,7 @@
 import docker
 import json
+import pickle
+import os
 import sys
 import datetime
 import time
@@ -35,7 +37,7 @@ def getAverageWaitingTime(waitingTimeMap):
     for alpha, alphaMap in waitingTimeMap.items():
         innerDict = {}
         for fn, waitingTimes in alphaMap.items():
-            innerDict[fn] = statistics.mean(waitingTimes)
+            innerDict[fn] = statistics.median_low(waitingTimes)
 
         averageWaitingTimeMap[alpha] = innerDict
 
@@ -67,6 +69,16 @@ def logMapUtilFunction(file_path, map):
         fp.write("\n" + datetime.datetime.now().strftime("%d-%m-%Y, %H:%M:%S") + "\n")
         fp.write(json.dumps(map, indent=4))
         fp.write("\n")
+
+def getPerAlphaAverage(waitingTimeMap):
+    res = {}
+
+    for alpha, map in waitingTimeMap.items():
+        # performance can be improved by doing this imperatively but what's the point?
+        # this calculation happens at the end of the experiment anyway
+        res[alpha] = statistics.median_low([i for waitingTimes in map.values() for i in waitingTimes])
+
+    return res
 
 class Function:
 
@@ -104,8 +116,6 @@ invocationContainerMap = {}
 
 ############# MAIN FUNCTION #######################
 if __name__ == "__main__":
-    function = sys.argv[1]
-
     client = docker.from_env()
 
     # ************VOLUME CONFIG*********************************
@@ -152,7 +162,7 @@ if __name__ == "__main__":
             # 'detach': True,
             # 'stdout': True,
             # 'stream': True,
-            'command': f'node {function}',
+            # 'command': f'node {function}',
             # 'command': 'ping google.com',
             # 'command': 'echo hello world',
             # 'command': 'node',
@@ -161,12 +171,12 @@ if __name__ == "__main__":
             }
     # ************END OF TEST CONFIG*****************************
     # container = client.containers.run(**container_config)
-    print(test_container_config['command'])
+    # print(test_container_config['command'])
     # container = client.containers.run(**test_container_config)
 
-    st = time.time()
-    container_logs = client.containers.run(**test_container_config)
-    et = time.time()
+    # st = time.time()
+    # container_logs = client.containers.run(**test_container_config)
+    # et = time.time()
 
 
     '''
@@ -189,8 +199,8 @@ if __name__ == "__main__":
     # time.sleep(2)
     # print(container.logs())
 
-    print(container_logs)
-    client.containers.get("tmp").remove()
+    # print(container_logs)
+    # client.containers.get("tmp").remove()
 
     client2 = docker.APIClient()
     '''
@@ -208,8 +218,8 @@ if __name__ == "__main__":
 
     '''
 
-    timeDiff = (et - st) * 1000
-    print(f"total time = {timeDiff} milliseconds")
+    # timeDiff = (et - st) * 1000
+    # print(f"total time = {timeDiff} milliseconds")
     # container.remove()
 
 
@@ -240,17 +250,25 @@ if __name__ == "__main__":
     taskQueue: queue.PriorityQueue = queue.PriorityQueue()
     currContainers = 0
     CONTAINER_POOL_LIMIT = 3
-    DEFAULT_VALUE = 0.03
-    DEFAULT_VALUE_TWO = DEFAULT_VALUE
+    defaultExeTime = {
+            "fetchGithubRepoDetails.js": 0.3,
+            "fetchGithubUser.js": 0.27,
+            "fetchJsonExtended.js": 0.8,
+            "fetchCovidData.js": 0.5,
+            "currencyExchange.js": 0.9,
+            }
     st = time.time()
     alphas = [0.1, 0.2, 0.3, 0.4, 0.5]
     latestArrivedFunction = None
     midWaitingTimeMap = {}
     arrivalQueue = getArrivalQueue(functionArrivalTimeMap)
-
+    exeTimeMap = {}
+    predTimeMap = {}
 
     for alpha in alphas:
         midWaitingTimeMap = {}
+        innerExeTimeMap = {}
+        innerPredTimeMap = {}
         arrivalQueue = getArrivalQueue(functionArrivalTimeMap)
 
         while True:
@@ -265,6 +283,11 @@ if __name__ == "__main__":
                     if info["State"]["Status"] == "exited":
                         exeTime = getExeTime(info)
                         latestExecutionTimeMap[v] = exeTime
+
+                        if v not in innerExeTimeMap:
+                            innerExeTimeMap[v] = []
+
+                        innerExeTimeMap[v].append(exeTime)
 
                         infoLog(currTime, f"container {client.containers.get(k).name}, running function {v} has finished executing and will be removed")
                         container = client.containers.get(k)
@@ -299,32 +322,40 @@ if __name__ == "__main__":
                         except KeyError:
                             latestExecutionTime = prevPred
                     else:
-                        prevPred = DEFAULT_VALUE
-                        latestExecutionTime = DEFAULT_VALUE_TWO
+                        prevPred = defaultExeTime[fn.name]
+                        latestExecutionTime = prevPred
 
 
                     # predict execution time here and put that in the priority queue ds which is taskQueue
                     newPred = (1-alpha)*prevPred + alpha * latestExecutionTime
                     predictedExecutionTimeMap[fn.name] = newPred
+
+                    if fn.name not in innerPredTimeMap:
+                        innerPredTimeMap[fn.name] = []
+                    innerPredTimeMap[fn.name].append(newPred)
+
                     taskQueue.put((fn.arrivalTime + newPred, fn))
 
                 # del currTime entries in functionArrivalTimeMap
                 infoLog(currTime, f"functions for arrival time {int(currTime)} have all been queued")
                 latestArrivedFunction = None
 
-            if not taskQueue.empty() and currContainers < CONTAINER_POOL_LIMIT:
+            if not taskQueue.empty():
                 function = taskQueue.get()[1]
 
-                # calculate waiting time and store it in a map
-                # might have rewrite the map to store for different values of alpha
-                functionWaitingTime = currTime - function.arrivalTime
-                # waitingTimeMap[function.name] = (functionWaitingTime + (waitingTimeMap[function.name] if function.name in waitingTimeMap else functionWaitingTime) ) / 2
-                midWaitingTimeMap[function.name].append(functionWaitingTime)
+                if currContainers < CONTAINER_POOL_LIMIT:
+                    # calculate waiting time and store it in a map
+                    # might have rewrite the map to store for different values of alpha
+                    functionWaitingTime = currTime - function.arrivalTime
+                    # waitingTimeMap[function.name] = (functionWaitingTime + (waitingTimeMap[function.name] if function.name in waitingTimeMap else functionWaitingTime) ) / 2
+                    midWaitingTimeMap[function.name].append(functionWaitingTime)
 
-                currContainer = client.containers.run(command=f"node {function.path}", **container_config)
-                infoLog(currTime, f"{function.name} being executed in a container with the container name {currContainer.name}")
-                invocationContainerMap[currContainer.id] = function.name
-                currContainers += 1
+                    currContainer = client.containers.run(command=f"node {function.path}", **container_config)
+                    infoLog(currTime, f"{function.name} being executed in a container with the container name {currContainer.name}")
+                    invocationContainerMap[currContainer.id] = function.name
+                    currContainers += 1
+                else:
+                    taskQueue.put((currTime + predictedExecutionTimeMap[function.name], function))
 
             if taskQueue.empty() and arrivalQueue.empty() and len(invocationContainerMap) == 0:
                 break
@@ -332,10 +363,33 @@ if __name__ == "__main__":
             time.sleep(0.1)
 
         waitingTimeMap[alpha] = midWaitingTimeMap
+        exeTimeMap[alpha] = innerExeTimeMap
+        predTimeMap[alpha] = innerPredTimeMap
 
     # at this point we have the waiting time map for all alphas
-
+    # store them in pickle files.
     averageWaitingTimeMap = getAverageWaitingTime(waitingTimeMap)
+    perAlphaAverageWaitingTimeMap = getPerAlphaAverage(waitingTimeMap)
+
+    curr_time = datetime.datetime.now().strftime("%d-%m-%Y, %H:%M:%S")
+    directory = f"results/{curr_time}"
+    os.makedirs(directory)
+
+    with open(os.path.join(directory, "waitingTimeMap.pickle"), "wb") as file:
+        pickle.dump(waitingTimeMap, file)
+
+    with open(os.path.join(directory, "averageWaitingTimeMap.pickle"), "wb") as file:
+        pickle.dump(averageWaitingTimeMap, file)
+
+    with open(os.path.join(directory, "perAlphaAverageWaitingTimeMap.pickle"), "wb") as file:
+        pickle.dump(perAlphaAverageWaitingTimeMap, file)
+
+    with open(os.path.join(directory, "exeTimeMap.pickle"), "wb") as file:
+        pickle.dump(exeTimeMap, file)
+
+    with open(os.path.join(directory, 'predTimeMap.pickle'), "wb") as file:
+        pickle.dump(predTimeMap, file)
+
     print(json.dumps(averageWaitingTimeMap, indent=4))
 
 

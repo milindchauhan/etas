@@ -1,0 +1,46 @@
+{
+  "0": ["fetchJsonExtended.js"],
+  "1": [
+    "fetchGithubRepoDetails.js",
+    "fetchGithubUser.js",
+    "fetchJsonExtended.js"
+  ],
+  "2": [
+    "fetchGithubUser.js",
+    "fetchGithubRepoDetails.js"
+  ],
+  "3": [
+    "fetchGithubRepoDetails.js",
+    "fetchJsonExtended.js",
+    "fetchGithubUser.js"
+  ],
+  "5": [
+    "fetchCovidData.js",
+    "currencyExchange.js"
+  ],
+  "7": [
+    "fetchGithubUser.js",
+    "currencyExchange.js"
+  ],
+  "10": [
+    "fetchJsonExtended.js",
+    "fetchCovidData.js",
+    "fetchJsonExtended.js"
+  ],
+  "12": [
+    "currencyExchange.js",
+    "fetchCovidData.js"
+  ],
+  "13": [
+    "fetchCovidData.js",
+    "currencyExchange.js"
+  ],
+  "14": [
+    "currencyExchange.js",
+    "fetchGithubRepoDetails.js"
+  ],
+  "15": [
+    "fetchCovidData.js",
+    "fetchGithubRepoDetails.js"
+  ]
+}
